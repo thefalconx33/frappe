@@ -94,6 +94,22 @@ Cypress.Commands.add('fill_field', (fieldname, value, fieldtype='Data') => {
 	return cy.get('@input').blur();
 });
 
+Cypress.Commands.add('fill_table', (tablename, rows) => {
+	let selector = `.frappe-control[data-fieldname="${tablename}"]`
+	cy.get(selector).as('table')
+	for(let [idx, row] of rows.entries()){
+		let fields = Object.keys(row)
+		let values = Object.values(row)
+		cy.get('@table').find('.grid-add-row').click()
+		cy.get('@table').find(`.grid-row[data-idx="${idx + 1}"]`).as('grid-row');
+		for(let [idx, field] of fields.entries()){
+			cy.get('@grid-row').find(`.grid-static-col[data-fieldname="${field}"]`).click();
+			cy.get('@grid-row').find(`.input-with-feedback.form-control.input-sm[data-fieldname="${field}"]`).type(values[idx], {delay: 150}).blur();
+		}
+	}
+
+})
+
 Cypress.Commands.add('awesomebar', (text) => {
 	cy.get('#navbar-search').type(`${text}{downarrow}{enter}`, { delay: 100 });
 });
@@ -104,6 +120,10 @@ Cypress.Commands.add('new_form', (doctype) => {
 
 Cypress.Commands.add('go_to_list', (doctype) => {
 	cy.visit(`/desk#List/${doctype}/List`);
+});
+
+Cypress.Commands.add('go_to_report', (doctype) => {
+	cy.visit(`/desk#List/${doctype}/Report`);
 });
 
 Cypress.Commands.add('clear_cache', () => {
@@ -163,7 +183,7 @@ Cypress.Commands.add('upload_files', (files, fieldname) => {
 	).then(() => {
 		console.log('files uploaded');
 	})
-	
+
 	cy.get(`input[type="file"]`).upload(files_to_be_uploaded, {});
 	return cy.get('.modal-dialog').find('.btn.btn-primary').click();
 })
@@ -172,3 +192,19 @@ Cypress.Commands.add('find_in_list', (string) => {
 	return cy.get(`.list-subject:contains(${string})`);
 })
 
+Cypress.Commands.add('sidebar', (fieldname, dropdown=false, search=false, value='') => {
+	cy.get('.list-sidebar').as('sidebar')
+	if (!dropdown) {
+		cy.get('@sidebar').find(`[data-label="${fieldname}"]`).as('sidebar-element');
+		cy.get('@sidebar-element').invoke('attr', 'class').should('not.have.class', 'disabled');
+		cy.get('@sidebar-element').click();
+	} else {
+		cy.get('@sidebar').find(`.dropdown-toggle[data-label="${fieldname}"]`).as('sidebar-element');
+		cy.get('@sidebar-element').invoke('attr', 'aria-expanded').should('contain', 'false');
+		cy.get('@sidebar-element').click().invoke('attr', 'aria-expanded').should('contain', 'true');
+		if (search) {
+			cy.get('@sidebar-element').parent().find('.form-control.dropdown-search-input').type(value);
+		}
+		cy.get('@sidebar-element').parent().find(`.group-by-value[data-name="${value}"]`).click();
+	}
+})
