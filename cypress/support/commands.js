@@ -66,21 +66,32 @@ Cypress.Commands.add('create_records', (doc) => {
 
 Cypress.Commands.add('fill_field', (fieldname, value, fieldtype='Data') => {
 	let selector = `.form-control[data-fieldname="${fieldname}"]`;
-
 	if (fieldtype === 'Text Editor') {
 		selector = `[data-fieldname="${fieldname}"] .ql-editor[contenteditable=true]`;
 	}
 	if (fieldtype === 'Code') {
 		selector = `[data-fieldname="${fieldname}"] .ace_text-input`;
 	}
-
 	cy.get(selector).as('input');
 
-	if (fieldtype === 'Select') {
-		return cy.get('@input').select(value);
+	if (fieldtype === 'Select') { return cy.get('@input').select(value) }
+	else if (fieldtype === 'Code') { return cy.get('@input').type(value, {force: true, delay: 100}) }
+	else if (fieldtype === 'Check') { return cy.get('@input').check(value) }
+	else if (fieldtype === 'Link') {
+		cy.server();
+		cy.route('POST', '/api/method/frappe.desk.search.search_link').as('search_link');
+		cy.route('GET', '/api/method/frappe.desk.form.utils.validate_link*').as('validate_link');
+		cy.get('@input').focus();
+		cy.wait('@search_link');
+		cy.get('ul[role="listbox"]').should('be.visible');
+		cy.get('@input').type(value.slice(0, value.length - 2), { delay: 100 });
+		cy.get('@input').type('{enter}', { delay: 100 });
+		cy.get('ul[role="listbox"]').should('be.hidden');
+		cy.get('@input').should('have.value', value);
 	} else {
-		return cy.get('@input').type(value, {waitForAnimations: false});
+		cy.get('@input').type(value, { delay: 100 });
 	}
+	return cy.get('@input').blur();
 });
 
 Cypress.Commands.add('awesomebar', (text) => {
@@ -117,3 +128,47 @@ Cypress.Commands.add('hide_dialog', () => {
 	cy.get_open_dialog().find('.btn-modal-close').click();
 	cy.get('.modal:visible').should('not.exist');
 });
+
+Cypress.Commands.add('save_doc', () => {
+	cy.server();
+	cy.route('POST', '/api/method/frappe.desk.form.save.savedocs').as('save_form');
+
+	cy.get('.primary-action').click();
+	cy.wait('@save_form').its('status').should('eq', 200);
+})
+
+Cypress.Commands.add('fill_filter', (label, value) => {
+	const selector = `.input-with-feedback.form-control.input-sm[placeholder=${label}]`
+
+	cy.get(selector).as('filter');
+	const isSelect = cy.get('@filter').invoke('attr', 'data-fieldtype').should('contain', 'Select');
+
+	if(isSelect) {
+		cy.get('@filter').select(value)
+	} else {
+		cy.get('@filter').type(value, { waitForAnimations: false })
+	}
+})
+
+Cypress.Commands.add('upload_files', (files, fieldname) => {
+	cy.get(` .btn-attach[data-fieldname="${fieldname}"]`).as('attach_button');
+	cy.get('@attach_button').click();
+	const files_to_be_uploaded = []
+	Promise.all(
+		files.map(file => {
+			return cy.fixture(file.filename).then(content => {
+				files_to_be_uploaded.push({ fileContent: content, fileName: file.filename, mimeType: file.mime_type })
+			})
+		})
+	).then(() => {
+		console.log('files uploaded');
+	})
+	
+	cy.get(`input[type="file"]`).upload(files_to_be_uploaded, {});
+	return cy.get('.modal-dialog').find('.btn.btn-primary').click();
+})
+
+Cypress.Commands.add('find_in_list', (string) => {
+	return cy.get(`.list-subject:contains(${string})`);
+})
+

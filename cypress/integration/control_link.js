@@ -22,7 +22,7 @@ context('Control Link', () => {
 		});
 	}
 
-	it('should set the valid value', () => {
+	it.only('should set the valid value', () => {
 		get_dialog_with_link().as('dialog');
 
 		cy.server();
@@ -30,12 +30,11 @@ context('Control Link', () => {
 
 		cy.get('.frappe-control[data-fieldname=link] input')
 			.focus()
-			.type('todo for li')
-			.type('n', { delay: 600 })
-			.type('k', { delay: 700 });
+			.type('todo for li', { delay: 100 })
+			.type('n', { delay: 600 });
 		cy.wait('@search_link');
 		cy.get('.frappe-control[data-fieldname=link] ul').should('be.visible');
-		cy.get('.frappe-control[data-fieldname=link] input').type('{downarrow}{enter}', { delay: 100 });
+		cy.get('.frappe-control[data-fieldname=link] input').type('{enter}', { delay: 100 });
 		cy.get('.frappe-control[data-fieldname=link] input').blur();
 		cy.get('@dialog').then(dialog => {
 			cy.get('@todos').then(todos => {
@@ -45,7 +44,7 @@ context('Control Link', () => {
 		});
 	});
 
-	it.only('should unset invalid value', () => {
+	it('should unset invalid value', () => {
 		get_dialog_with_link().as('dialog');
 
 		cy.server();
