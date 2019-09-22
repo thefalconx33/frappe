@@ -8,6 +8,7 @@ from frappe import _
 import six, re, io
 from bs4 import BeautifulSoup
 from PyPDF2 import PdfFileReader, PdfFileWriter
+import requests
 
 def get_pdf(html, options=None, output=None):
 	html = scrub_urls(html)
@@ -19,16 +20,22 @@ def get_pdf(html, options=None, output=None):
 	})
 
 	filedata = ''
-
 	try:
-		# Set filename property to false, so no file is actually created
-		filedata = pdfkit.from_string(html, False, options=options or {})
+		import json
+		r = requests.post('http://localhost:3000', data = { 'html': str(html), 'options': json.dumps(options) })
+		pdf_buffer_obj = r.json()['pdf']['data']
+		filedata = bytes(pdf_buffer_obj)
 
+		# Set filename property to false, so no file is actually created
+		# filedata = pdfkit.from_string(html, False, options=options or {})
+		
 		# https://pythonhosted.org/PyPDF2/PdfFileReader.html
 		# create in-memory binary streams from filedata and create a PdfFileReader object
 		reader = PdfFileReader(io.BytesIO(filedata))
+		cleanup("", options)
 
 	except IOError as e:
+		cleanup("", options)
 		if ("ContentNotFoundError" in e.message
 			or "ContentOperationNotPermittedError" in e.message
 			or "UnknownContentError" in e.message
@@ -91,7 +98,10 @@ def prepare_options(html, options):
 
 		# defaults
 		'margin-right': '15mm',
-		'margin-left': '15mm'
+		'margin-left': '15mm',
+		# below 2 lines messes up wkhtml pdf header and footer
+		'margin-bottom': '15mm',
+		'margin-top': '10mm',
 	})
 
 	html, html_options = read_options_from_html(html)
@@ -124,12 +134,12 @@ def read_options_from_html(html):
 				options[attr] = str(match[-1][3]).strip()
 		except:
 			pass
-
+	
 	return soup.prettify(), options
 
 def prepare_header_footer(soup):
 	options = {}
-
+	
 	head = soup.find("head").contents
 	styles = soup.find_all("style")
 
@@ -153,9 +163,9 @@ def prepare_header_footer(soup):
 				"bootstrap": bootstrap,
 				"fontawesome": fontawesome
 			})
-
+			
 			# create temp file
-			fname = os.path.join("/tmp", "frappe-pdf-{0}.html".format(frappe.generate_hash()))
+			fname = os.path.join("frappe-pdf-{0}.html".format(frappe.generate_hash()))
 			with open(fname, "wb") as f:
 				f.write(html.encode("utf-8"))
 
@@ -166,7 +176,7 @@ def prepare_header_footer(soup):
 				options["margin-top"] = "15mm"
 			elif html_id == "footer-html":
 				options["margin-bottom"] = "15mm"
-
+	
 	return options
 
 def cleanup(fname, options):

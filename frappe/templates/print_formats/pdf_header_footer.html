@@ -27,7 +27,7 @@
 			body {
 				margin: 0 !important;
 				border: 0 !important;
-				padding: 15mm 0 5mm !important;
+				padding: 15mm 0 0 !important;
 			}
 
 			.letter-head,
@@ -44,7 +44,7 @@
 		</style>
 
 		<!-- from: http://wkhtmltopdf.org/usage/wkhtmltopdf.txt -->
-		<script>
+		<!-- <script>
 			function subst() {
 				var vars = {};
 				var x = window.location.search.substring(1).split('&');
@@ -60,16 +60,17 @@
 					}
 				}
 			}
-		</script>
+		</script> -->
 
-		{% for tag in styles -%}
+		<!-- {% for tag in styles -%}
 			{{ tag | string }}
-		{%- endfor %}
+		{%- endfor %} -->
 
 	</head>
-	<body onload="subst()">
-		<div class="print-format">
-			<div class="wrapper">
+	<body>
+		<!-- footer wasn't filling the entire bottom space -->
+		<div class="print-format" style="width: 100%">
+			<div class="wrapper" style="width: 100%; font-size: 1rem">
 				{% for tag in content -%}
 					{{ tag | string }}
 				{%- endfor %}
