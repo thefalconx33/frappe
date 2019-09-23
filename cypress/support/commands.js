@@ -64,7 +64,7 @@ Cypress.Commands.add('create_records', (doc) => {
 		.then(r => r.message);
 });
 
-Cypress.Commands.add('fill_field', (fieldname, value, fieldtype='Data') => {
+Cypress.Commands.add('get_field', (fieldname, fieldtype) => {
 	let selector = `.form-control[data-fieldname="${fieldname}"]`;
 	if (fieldtype === 'Text Editor') {
 		selector = `[data-fieldname="${fieldname}"] .ql-editor[contenteditable=true]`;
@@ -72,13 +72,18 @@ Cypress.Commands.add('fill_field', (fieldname, value, fieldtype='Data') => {
 	if (fieldtype === 'Code') {
 		selector = `[data-fieldname="${fieldname}"] .ace_text-input`;
 	}
-	cy.get(selector).as('input');
+	return cy.get(selector);
+});
+
+Cypress.Commands.add('fill_field', (fieldname, value, fieldtype='Data') => {
+	cy.get_field(fieldname, fieldtype).as('input');
 	cy.get('@input').then(($input) => {
 		if (Cypress.dom.isHidden($input)) {
 			$input.closest('.section-body.hide').removeClass('hide');
 		}
+		$input.val(undefined);
 	})
-	cy.get('@input').focus()
+	cy.get('@input').focus();
 	if (fieldtype === 'Select') { return cy.get('@input').select(value) }
 	else if (fieldtype === 'Code') { return cy.get('@input').type(value, {force: true, delay: 100}) }
 	else if (fieldtype === 'Check') { return cy.get('@input').check(value) }
@@ -87,11 +92,11 @@ Cypress.Commands.add('fill_field', (fieldname, value, fieldtype='Data') => {
 		cy.route('POST', '/api/method/frappe.desk.search.search_link').as('search_link');
 		cy.route('GET', '/api/method/frappe.desk.form.utils.validate_link*').as('validate_link');
 		cy.wait('@search_link');
-		cy.get('ul[role="listbox"]').should('be.visible');
-		cy.get('@input').type(value.slice(0, value.length - 2));
-		cy.wait(1000);
-		cy.get('@input').type('{enter}', { delay: 1000 });
-		cy.get('ul[role="listbox"]').should('be.hidden');
+		cy.get('ul[role="listbox"]').as('awesomeplete').should('be.visible');
+		cy.get('@input').type(value.slice(0, value.length - 2), { delay: 200 });
+		let link_name = new RegExp("^" + value + "$", "g")
+		cy.get('@awesomeplete').contains(link_name).closest('li').click();
+		cy.get('@awesomeplete').should('be.hidden');
 		cy.get('@input').should('have.value', value);
 	}
 	else if (fieldtype === 'Datetime' || fieldtype === 'Date') {
@@ -105,12 +110,19 @@ Cypress.Commands.add('fill_field', (fieldname, value, fieldtype='Data') => {
 });
 
 Cypress.Commands.add('fill_table', (tablename, rows) => {
+	var table_empty = 0;
 	let selector = `.frappe-control[data-fieldname="${tablename}"]`
 	cy.get(selector).as('table')
+	cy.get('@table').find('.grid-body > .rows').children().then(($children) => {
+		table_empty = $children.length ? 0 : 1;
+	})
 	for(let [idx, row] of rows.entries()){
 		let fields = Object.keys(row)
 		let values = Object.values(row)
-		cy.get('@table').find('.grid-add-row').click()
+		if (table_empty) {
+			cy.get('@table').find('.grid-add-row').click()
+			table_empty = 0;
+		}
 		cy.get('@table').find(`.grid-row[data-idx="${idx + 1}"]`).as('grid-row');
 		for(let [idx, field] of fields.entries()){
 			cy.get('@grid-row').find(`.grid-static-col[data-fieldname="${field}"]`).click();
