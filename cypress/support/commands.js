@@ -73,7 +73,12 @@ Cypress.Commands.add('fill_field', (fieldname, value, fieldtype='Data') => {
 		selector = `[data-fieldname="${fieldname}"] .ace_text-input`;
 	}
 	cy.get(selector).as('input');
-
+	cy.get('@input').then(($input) => {
+		if (Cypress.dom.isHidden($input)) {
+			$input.closest('.section-body.hide').removeClass('hide');
+		}
+	})
+	cy.get('@input').focus()
 	if (fieldtype === 'Select') { return cy.get('@input').select(value) }
 	else if (fieldtype === 'Code') { return cy.get('@input').type(value, {force: true, delay: 100}) }
 	else if (fieldtype === 'Check') { return cy.get('@input').check(value) }
@@ -81,14 +86,19 @@ Cypress.Commands.add('fill_field', (fieldname, value, fieldtype='Data') => {
 		cy.server();
 		cy.route('POST', '/api/method/frappe.desk.search.search_link').as('search_link');
 		cy.route('GET', '/api/method/frappe.desk.form.utils.validate_link*').as('validate_link');
-		cy.get('@input').focus();
 		cy.wait('@search_link');
 		cy.get('ul[role="listbox"]').should('be.visible');
-		cy.get('@input').type(value.slice(0, value.length - 2), { delay: 100 });
-		cy.get('@input').type('{enter}', { delay: 100 });
+		cy.get('@input').type(value.slice(0, value.length - 2));
+		cy.wait(1000);
+		cy.get('@input').type('{enter}', { delay: 1000 });
 		cy.get('ul[role="listbox"]').should('be.hidden');
 		cy.get('@input').should('have.value', value);
-	} else {
+	}
+	else if (fieldtype === 'Datetime' || fieldtype === 'Date') {
+		cy.wait(500);
+		cy.get('@input').type(value, { delay: 100 });
+	}
+	else {
 		cy.get('@input').type(value, { delay: 100 });
 	}
 	return cy.get('@input').blur();
