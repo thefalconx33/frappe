@@ -111,7 +111,7 @@ Cypress.Commands.add('fill_field', (fieldname, value, fieldtype='Data') => {
 
 Cypress.Commands.add('fill_table', (tablename, rows) => {
 	var table_empty = 0;
-	let selector = `.frappe-control[data-fieldname="${tablename}"]`
+	let selector = `.frappe-control[data-fieldname="${tablename}"]:visible`
 	cy.get(selector).as('table')
 	cy.get('@table').find('.grid-body > .rows').children().then(($children) => {
 		table_empty = $children.length ? 0 : 1;
@@ -130,7 +130,26 @@ Cypress.Commands.add('fill_table', (tablename, rows) => {
 		}
 	}
 
-})
+});
+
+Cypress.Commands.add('get_toolbar', (fieldname, action='') => {
+	cy.get('.form-inner-toolbar:visible').as('toolbar');
+	if (action === '') {
+		cy.get('@toolbar').find(`.btn[data-label="${encodeURIComponent(fieldname.trim())}"]:visible`).as('button');
+		cy.get('@button').click();
+	} else {
+		cy.get('@toolbar').find(`.btn-group[data-label="${encodeURIComponent(fieldname.trim())}"]:visible`).as('button');
+		cy.get('@button').find('.btn.dropdown-toggle[data-toggle="dropdown"]:visible').click();
+		cy.get('@toolbar').find(`[data-label="${encodeURIComponent(action.trim())}"]:visible`).as('action');
+		cy.get('@action').click();
+	}
+});
+
+Cypress.Commands.add('get_button', (fieldname) => {
+	cy.get('.page-head').as('page-head');
+	cy.get('@page-head').find(`.btn[data-label="${fieldname.trim()}"]`).as('button');
+	cy.get('@button').click();
+});
 
 Cypress.Commands.add('awesomebar', (text) => {
 	cy.get('#navbar-search').type(`${text}{downarrow}{enter}`, { delay: 100 });
@@ -138,6 +157,10 @@ Cypress.Commands.add('awesomebar', (text) => {
 
 Cypress.Commands.add('new_form', (doctype) => {
 	cy.visit(`/desk#Form/${doctype}/New ${doctype} 1`);
+});
+
+Cypress.Commands.add('go_to_form', (doctype, docname) => {
+	cy.visit(`/desk#Form/${doctype}/${docname}`);
 });
 
 Cypress.Commands.add('go_to_list', (doctype) => {
@@ -175,7 +198,18 @@ Cypress.Commands.add('save_doc', () => {
 	cy.server();
 	cy.route('POST', '/api/method/frappe.desk.form.save.savedocs').as('save_form');
 
-	cy.get('.primary-action').click();
+	cy.get('[data-label="Save"]:visible').click();
+	cy.wait('@save_form').its('status').should('eq', 200);
+})
+
+Cypress.Commands.add('submit_doc', () => {
+	// check if doc is submittable
+	cy.server();
+	cy.route('POST', '/api/method/frappe.desk.form.save.savedocs').as('save_form');
+
+	cy.get('[data-label="Submit"]:visible').click();
+	cy.get_open_dialog().find('.btn-primary').click();
+
 	cy.wait('@save_form').its('status').should('eq', 200);
 })
 
@@ -193,7 +227,7 @@ Cypress.Commands.add('fill_filter', (label, value) => {
 })
 
 Cypress.Commands.add('upload_files', (files, fieldname) => {
-	cy.get(` .btn-attach[data-fieldname="${fieldname}"]`).as('attach_button');
+	cy.get(`.btn-attach[data-fieldname="${fieldname}"]`).as('attach_button');
 	cy.get('@attach_button').click();
 	const files_to_be_uploaded = []
 	Promise.all(

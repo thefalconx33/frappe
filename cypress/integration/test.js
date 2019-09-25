@@ -5,18 +5,17 @@ context('Table MultiSelect', () => {
 
 	let name = 'table multiselect' + Math.random().toString().slice(2, 8);
 
-	it('select value from multiselect dropdown', () => {
-		let selector = `.input-with-feedback.form-control.input-sm[data-fieldname="skill"]`;
-		//cy.new_form('Contact');
-		cy.go_to_list('Customer');
-		//cy.get('.list-sidebar').find('.dropdown-toggle[data-label="Created By"]').as('sidebar-element');
-		//if (cy.get('@sidebar-element').invoke('attr', 'aria-expanded').should('contain', 'false')) {
-		//	cy.get('@sidebar-element').click().invoke('attr', 'aria-expanded').should('contain', 'true');
-		//	cy.get('@sidebar-element').parent().find('.group-by-value[data-name="Administrator"]').click();
-
-		//}
-		//cy.fill_field('first_name', "Test Contact");
-		//cy.fill_table('links', [{'link_doctype': 'Customer', 'link_name': '!XLED'}, {'link_doctype': 'Customer', 'link_name': '0001 - 1'}, {'link_doctype': 'Supplier', 'link_name': 'Juststickers'}])
-		cy.sidebar('Created By', true, true, "smital@erpnext.com");
+	it('Generate Payroll Entry', () => {
+		cy.new_form("Payroll Entry");
+		cy.fill_field("payroll_frequency", "Monthly", "Select");
+		cy.fill_field("branch", "Vidyavihar", "Link");
+		cy.fill_field("designation", "Writer", "Link");
+		cy.save_doc();
+		cy.get_toolbar("Get Employees");
+		cy.get_button("Create Salary Slips");
+		cy.reload();
+		cy.get_toolbar("Submit Salary Slip");
+		cy.get_open_dialog().find('.btn-primary').click();
+		cy.hide_dialog();
 	});
 });
