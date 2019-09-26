@@ -93,7 +93,7 @@ Cypress.Commands.add('fill_field', (fieldname, value, fieldtype='Data') => {
 		cy.route('GET', '/api/method/frappe.desk.form.utils.validate_link*').as('validate_link');
 		cy.wait('@search_link');
 		cy.get('ul[role="listbox"]').as('awesomeplete').should('be.visible');
-		cy.get('@input').type(value.slice(0, value.length - 2), { delay: 200 });
+		cy.get('@input').type(value.slice(0, value.length - 2));
 		let link_name = new RegExp("^" + value + "$", "g")
 		cy.get('@awesomeplete').contains(link_name).closest('li').click();
 		cy.get('@awesomeplete').should('be.hidden');
@@ -113,22 +113,23 @@ Cypress.Commands.add('fill_table', (tablename, rows) => {
 	var table_empty = 0;
 	let selector = `.frappe-control[data-fieldname="${tablename}"]:visible`
 	cy.get(selector).as('table')
-	cy.get('@table').find('.grid-body > .rows').children().then(($children) => {
-		table_empty = $children.length ? 0 : 1;
-	})
-	for(let [idx, row] of rows.entries()){
-		let fields = Object.keys(row)
-		let values = Object.values(row)
-		if (table_empty) {
-			cy.get('@table').find('.grid-add-row').click()
-			table_empty = 0;
+	cy.get('@table').find('.grid-add-row').click();
+	cy.get('@table').find('.grid-body > .rows').then(($rows) => {
+		table_empty = $rows.find('.grid-row').length ? 0 : 1;
+		for(let [idx, row] of rows.entries()){
+			let fields = Object.keys(row)
+			let values = Object.values(row)
+			if (table_empty) {
+				cy.get('@table').find('.grid-add-row').click()
+				table_empty = 0;
+			}
+			cy.get('@table').find(`.grid-row[data-idx="${idx + 1}"]`).as('grid-row');
+			for(let [idx, field] of fields.entries()){
+				cy.get('@grid-row').find(`.grid-static-col[data-fieldname="${field}"]`).click();
+				cy.get('@grid-row').find(`.input-with-feedback.form-control.input-sm[data-fieldname="${field}"]`).type(values[idx], {delay: 150}).blur();
+			}
 		}
-		cy.get('@table').find(`.grid-row[data-idx="${idx + 1}"]`).as('grid-row');
-		for(let [idx, field] of fields.entries()){
-			cy.get('@grid-row').find(`.grid-static-col[data-fieldname="${field}"]`).click();
-			cy.get('@grid-row').find(`.input-with-feedback.form-control.input-sm[data-fieldname="${field}"]`).type(values[idx], {delay: 150}).blur();
-		}
-	}
+	});
 
 });
 
