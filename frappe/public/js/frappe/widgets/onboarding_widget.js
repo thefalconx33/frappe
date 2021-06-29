@@ -91,7 +91,8 @@ export default class OnboardingWidget extends Widget {
 			);
 
 			if (step.intro_video_url) {
-				$(`<button class="btn btn-primary btn-sm">${__('Watch Tutorial')}</button>`)
+				const title = __(step.video_btn_label) || __('Watch Tutorial')
+				$(`<button class="btn btn-primary btn-sm">${title}</button>`)
 					.appendTo(this.step_footer)
 					.on('click', toggle_video);
 			} else {

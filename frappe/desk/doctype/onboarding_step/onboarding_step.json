@@ -13,6 +13,7 @@
   "description_section",
   "description",
   "intro_video_url",
+  "video_btn_label",
   "section_break_5",
   "action",
   "action_label",
@@ -206,10 +207,16 @@
    "fieldname": "show_form_tour",
    "fieldtype": "Check",
    "label": "Show Form Tour"
+  },
+  {
+   "depends_on": "intro_video_url",
+   "fieldname": "video_btn_label",
+   "fieldtype": "Data",
+   "label": "Video Button Label"
   }
  ],
  "links": [],
- "modified": "2020-10-30 14:54:06.646513",
+ "modified": "2021-06-29 14:45:57.043715",
  "modified_by": "Administrator",
  "module": "Desk",
  "name": "Onboarding Step",
