@@ -136,7 +136,7 @@ def get_monthly_goal_graph_data(title, doctype, docname, goal_value_field, goal_
 
 	data = {
 		'title': title,
-		# 'subtitle':
+		'type': 'line',
 
 		'data': {
 			'datasets': [
